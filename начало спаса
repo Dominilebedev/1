@@ -1,0 +1,137 @@
+#Основа нашей игры Space!
+import pygame
+import random
+
+WIDTH = 1200
+HEIGHT = 1024
+FPS = 180
+
+#Обозначение цветов
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+AQUA = (0, 243, 255)
+Gray = (128, 128, 128)
+YELLOW = (255, 255, 0) #Добавляем желтый для пуль (ЧАСТЬ 3)
+
+#включаем Пайгейм и создаем окно
+pygame.init()
+pygame.mixer.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("NEW YEAR SPACE!") #Устанавливаем название для игры
+clock = pygame.time.Clock()
+
+#Создаем класс отвечающий за персонажа
+class Player(pygame.sprite.Sprite):
+    
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((40, 40))
+        self.image.fill(AQUA)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = WIDTH / 2
+        self.rect.bottom = HEIGHT - 10
+        self.speedx = 0
+
+    def update(self):
+        self.speedx = 0
+        keystate = pygame.key.get_pressed()
+        if keystate[pygame.K_LEFT]: #Управление на стрелочках
+            self.speedx = -5 #Скорость передвижения
+        if keystate[pygame.K_RIGHT]: #Управление на стрелочках
+            self.speedx = 5 #Скорость передвижения
+        self.rect.x += self.speedx
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
+        if self.rect.left <0:
+            self.rect.left = 0
+    
+    def shoot(self):
+        bullet = Bullet(self.rect.centerx, self.rect.top)
+        all_sprites.add(bullet)
+        bullets.add(bullet)
+
+#создаем Мобов (ЧАСТЬ 2)
+class Mob(pygame.sprite.Sprite):
+    
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((30, 40))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(WIDTH - self.rect.width)
+        self.rect.y = random.randrange(-100, -40)
+        self.speedy = random.randrange(1, 8)
+        self.speedx = random.randrange(-3, 3)
+
+    def update(self):
+        self.rect.x += self.speedx
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT + 10 or self.rect.left < -25 or self.rect.right > WIDTH + 20:
+            self.rect.x = random.randrange(WIDTH - self.rect.width)
+            self.rect.y = random.randrange(-100, -40)
+            self.speedy = random.randrange(1, 8) # (КОНЕЦ ЧАСТИ 2)
+
+class Bullet(pygame.sprite.Sprite): #СОЗДАЕМ КЛАСС ДЛЯ СТЕЛЬБЫ (ЧАСТЬ 3)
+    
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((10,20))
+        self.image.fill(YELLOW)
+        self.rect = self.image.get_rect()
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = -10
+
+    def update(self):
+        self.rect.y += self.speedy
+        #Убиваем спрайт если он достиг края экрана
+        if self.rect.bottom < 0:
+            self.kill() #(КОНЕЦ ЧАСТИ 3)
+
+all_sprites = pygame.sprite.Group()
+mobs = pygame.sprite.Group() #(ЧАСТЬ 2)
+bullets = pygame.sprite.Group() #Добавляем группу для пуль (ЧАСТЬ 3)
+player = Player()
+all_sprites.add(player)
+mobs = pygame.sprite.Group() #(ЧАСТЬ 2)
+for i in range(8): #(ЧАСТЬ 2)
+    m = Mob()
+    all_sprites.add(m)
+    mobs.add(m) #(КОНЕЦ ЧАСТИ 2)
+    
+#Создаем цикл игры
+running = True
+while running:
+    #поддерживаем цикл на нужной скорости
+    clock.tick(FPS)
+    #Создаем инпуты (ивенты)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN: #Создаем стрельбу на пробел (ЧАСТЬ 3)
+            if event.key == pygame.K_SPACE:
+                player.shoot()
+    #Обновление
+    all_sprites.update()
+    #Проверка задела ли пуля моба (ЧАСТЬ 3)
+    hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
+    for hit in hits:
+        m = Mob()
+        all_sprites.add(m)
+        mobs.add(m)
+
+    #Проверка задел ли моб игрока (ЧАСТЬ 3)
+    hits = pygame.sprite.spritecollide(player, mobs, False)
+    if hits:
+        running = False
+    #Отрисовываем/Рендерим
+    screen.fill(Gray)
+    all_sprites.draw(screen)
+    # ПОСЛЕ отрисовки всего, переворачиваем экран
+    pygame.display.flip()
+    
+
+pygame.quit()
